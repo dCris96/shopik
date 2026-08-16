@@ -165,11 +165,115 @@
 
       <!-- ===================== CONTENIDO PRINCIPAL (cambia según la sección) ===================== -->
       <main class="app-content" id="appContent">
-        <!-- SECCIÓN: PRINCIPAL (placeholder, se construye completa en FASE 5) -->
+        <!-- SECCIÓN: PRINCIPAL ===================== FASE 5 ===================== -->
         <section class="screen" id="screen-principal" data-screen="principal">
-          <div class="placeholder-card">
-            <p>🏠 Aquí irá el Dashboard del día</p>
-            <span class="placeholder-card__sub">Se construye en la Fase 5</span>
+          <!-- Ventas del día y Gastos del día -->
+          <div class="dashboard-summary-grid">
+            <div class="dashboard-card dashboard-card--sales">
+              <span class="dashboard-card__label">Ventas de hoy</span>
+              <span class="dashboard-card__value" id="salesToday">S/ 0.00</span>
+            </div>
+            <div class="dashboard-card dashboard-card--expenses">
+              <span class="dashboard-card__label">Gastos de hoy</span>
+              <span class="dashboard-card__value" id="expensesToday"
+                >S/ 0.00</span
+              >
+            </div>
+          </div>
+
+          <!-- Ganancia neta en tiempo real -->
+          <div class="card dashboard-profit">
+            <span class="dashboard-profit__label">Ganancia neta de hoy</span>
+            <span class="dashboard-profit__value" id="netProfitToday"
+              >S/ 0.00</span
+            >
+          </div>
+
+          <!-- Acciones rápidas: registrar todo en 2 toques -->
+          <div class="quick-actions">
+            <button class="quick-action" id="quickSaleBtn" type="button">
+              <span class="quick-action__icon quick-action__icon--sale">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="9" cy="20" r="1.4" fill="currentColor" />
+                  <circle cx="17" cy="20" r="1.4" fill="currentColor" />
+                </svg>
+              </span>
+              <span>Registrar Venta</span>
+            </button>
+
+            <button class="quick-action" id="quickExpenseBtn" type="button">
+              <span class="quick-action__icon quick-action__icon--expense">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M12 7v10M9.5 9.3c0-1.1 1.1-2 2.5-2s2.5.7 2.5 1.8-1 1.7-2.5 1.9-2.5.8-2.5 1.9 1.1 1.8 2.5 1.8 2.5-.9 2.5-2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <span>Registrar Gasto</span>
+            </button>
+
+            <button class="quick-action" id="quickProductBtn" type="button">
+              <span class="quick-action__icon quick-action__icon--product">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4 8 12 4l8 4-8 4-8-4Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M4 8v8l8 4 8-4V8"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <span>Agregar Producto</span>
+            </button>
+          </div>
+
+          <!-- Últimos movimientos del día (ventas + gastos combinados) -->
+          <h2 class="section-subtitle">Últimos movimientos de hoy</h2>
+          <div class="movements-list" id="movementsList"></div>
+
+          <div class="empty-state" id="movementsEmpty" hidden>
+            <p>📋 Aún no hay movimientos hoy</p>
+            <span class="empty-state__sub"
+              >Tus ventas y gastos del día aparecerán aquí</span
+            >
           </div>
         </section>
 
@@ -511,6 +615,106 @@
       </div>
     </div>
 
+    <!-- ===================== MODAL: REGISTRAR VENTA (FASE 5) ===================== -->
+    <!-- 🔐 Descuenta stock del producto vendido y guarda la venta en Firestore -->
+    <div class="modal-overlay" id="saleModal" hidden>
+      <div class="modal-sheet">
+        <div class="modal-sheet__handle"></div>
+        <div class="modal-sheet__header">
+          <h3>Registrar venta</h3>
+          <button
+            type="button"
+            class="modal-close"
+            id="closeSaleModal"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p class="modal-error" id="saleError" hidden></p>
+
+        <form class="product-form" id="saleForm">
+          <div class="product-field">
+            <label for="saleProductSelect">Producto</label>
+            <select id="saleProductSelect" required></select>
+          </div>
+
+          <div class="product-field">
+            <label for="saleQuantity">Cantidad</label>
+            <input
+              type="number"
+              id="saleQuantity"
+              value="1"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              required
+            />
+          </div>
+
+          <div class="sale-total-row">
+            <span>Total a cobrar</span>
+            <strong id="saleTotalPreview">S/ 0.00</strong>
+          </div>
+
+          <button type="submit" class="btn-primary" id="saleSubmitBtn">
+            Confirmar venta
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== MODAL: GASTO RÁPIDO (desde el Dashboard) ===================== -->
+    <!-- 🔐 Usa la misma colección "expenses" que la sección Gastos, solo que accesible en 2 toques -->
+    <div class="modal-overlay" id="quickExpenseModal" hidden>
+      <div class="modal-sheet">
+        <div class="modal-sheet__handle"></div>
+        <div class="modal-sheet__header">
+          <h3>Registrar gasto</h3>
+          <button
+            type="button"
+            class="modal-close"
+            id="closeQuickExpenseModal"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p class="modal-error" id="quickExpenseError" hidden></p>
+
+        <form class="product-form" id="quickExpenseForm">
+          <div class="product-field">
+            <label for="quickExpenseConcept">Concepto</label>
+            <input
+              type="text"
+              id="quickExpenseConcept"
+              placeholder="Ej. Bolsas, transporte, luz..."
+              required
+            />
+          </div>
+
+          <div class="product-field">
+            <label for="quickExpenseAmount">Monto</label>
+            <input
+              type="number"
+              id="quickExpenseAmount"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn-primary" id="quickExpenseSubmitBtn">
+            Guardar gasto
+          </button>
+        </form>
+      </div>
+    </div>
+
     <!-- 🔐 Configuración e inicialización de Firebase (Auth + Firestore + Storage) -->
     <script type="module" src="js/firebaseConfig.js"></script>
     <!-- 🔐 Lógica de autenticación: login, registro, sesión activa y cerrar sesión -->
@@ -521,5 +725,7 @@
     <script type="module" src="js/inventario.js"></script>
     <!-- 🔐 Lógica de Gastos: registro simple y lista filtrada por Hoy / Este mes -->
     <script type="module" src="js/gastos.js"></script>
+    <!-- 🔐 Lógica del Dashboard: ventas, resumen del día, ganancia neta y acciones rápidas -->
+    <script type="module" src="js/dashboard.js"></script>
   </body>
 </html>
