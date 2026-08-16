@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- 🔧 Viewport optimizado para móvil: evita zoom accidental y respeta el notch de iPhone -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#FF6B6B" />
+    <meta
+      name="description"
+      content="App para vendedoras: registra ventas, gastos e inventario en segundos."
+    />
+
+    <title>VentaFácil</title>
+
+    <!-- 🎨 Tipografía Poppins: redondeada y amigable, coincide con el estilo de las capturas de referencia -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Hoja de estilos base -->
+    <link rel="stylesheet" href="css/styles.css" />
+
+    <!-- 🔧 En la FASE 6 se añadirá aquí el link al manifest.json y el ícono para instalación como PWA -->
+    <!-- <link rel="manifest" href="manifest.json" /> -->
+  </head>
+  <body>
+    <!-- ===================== PANTALLA DE AUTENTICACIÓN (Login / Registro) ===================== -->
+    <!-- 🔐 Se muestra sola mientras no haya sesión activa. auth.js controla su visibilidad. -->
+    <div class="auth-screen" id="authScreen">
+      <div class="auth-card">
+        <div class="auth-brand">
+          <div class="auth-brand__logo">VF</div>
+          <h1 class="auth-brand__title">VentaFácil</h1>
+          <p class="auth-brand__subtitle">
+            Registra tus ventas, gastos e inventario en segundos
+          </p>
+        </div>
+
+        <!-- Pestañas para alternar entre Iniciar sesión y Crear cuenta -->
+        <div class="auth-tabs" role="tablist">
+          <button
+            class="auth-tabs__btn is-active"
+            data-mode="login"
+            type="button"
+            role="tab"
+          >
+            Iniciar sesión
+          </button>
+          <button
+            class="auth-tabs__btn"
+            data-mode="register"
+            type="button"
+            role="tab"
+          >
+            Crear cuenta
+          </button>
+        </div>
+
+        <!-- Mensaje de error (oculto por defecto, lo llena auth.js) -->
+        <p class="auth-error" id="authError" hidden></p>
+
+        <form class="auth-form" id="authForm">
+          <!-- Campo solo visible en modo "Crear cuenta" -->
+          <div class="auth-field" id="fieldName" hidden>
+            <label for="inputName">Tu nombre</label>
+            <input
+              type="text"
+              id="inputName"
+              placeholder="Ej. María Pérez"
+              autocomplete="name"
+            />
+          </div>
+
+          <div class="auth-field">
+            <label for="inputEmail">Correo electrónico</label>
+            <input
+              type="email"
+              id="inputEmail"
+              placeholder="tucorreo@ejemplo.com"
+              autocomplete="email"
+              required
+            />
+          </div>
+
+          <div class="auth-field">
+            <label for="inputPassword">Contraseña</label>
+            <input
+              type="password"
+              id="inputPassword"
+              placeholder="Mínimo 6 caracteres"
+              autocomplete="current-password"
+              required
+              minlength="6"
+            />
+          </div>
+
+          <button
+            type="submit"
+            class="btn-primary auth-submit"
+            id="authSubmitBtn"
+          >
+            Iniciar sesión
+          </button>
+        </form>
+
+        <p class="auth-switch">
+          <span id="authSwitchText">¿No tienes cuenta?</span>
+          <button type="button" id="authSwitchBtn">Crear una</button>
+        </p>
+      </div>
+    </div>
+
+    <!-- ===================== CONTENEDOR PRINCIPAL DE LA APP ===================== -->
+    <!-- 🔐 Oculto por defecto: auth.js lo muestra solo cuando hay una sesión activa -->
+    <div class="app" id="appRoot" hidden>
+      <!-- ===================== HEADER SUPERIOR ===================== -->
+      <!-- 🎨 Header simple y limpio. El contenido cambiará según la sección activa (se completa en fases 3, 4 y 5) -->
+      <header class="app-header">
+        <h1 class="app-header__title" id="headerTitle">Principal</h1>
+        <div class="app-header__actions">
+          <div
+            class="app-header__avatar"
+            id="userAvatar"
+            aria-label="Perfil de usuaria"
+          >
+            <!-- 🔐 Se llena con la inicial del nombre de la vendedora autenticada -->
+            <span id="userInitial">V</span>
+          </div>
+          <!-- 🔐 Botón visible para cerrar sesión, siempre accesible desde el header -->
+          <button
+            class="logout-btn"
+            id="logoutBtn"
+            aria-label="Cerrar sesión"
+            type="button"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M15 17V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v2"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M9 12h12m0 0-3-3m3 3-3 3"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ===================== CONTENIDO PRINCIPAL (cambia según la sección) ===================== -->
+      <main class="app-content" id="appContent">
+        <!-- SECCIÓN: PRINCIPAL (placeholder, se construye completa en FASE 5) -->
+        <section class="screen" id="screen-principal" data-screen="principal">
+          <div class="placeholder-card">
+            <p>🏠 Aquí irá el Dashboard del día</p>
+            <span class="placeholder-card__sub">Se construye en la Fase 5</span>
+          </div>
+        </section>
+
+        <!-- SECCIÓN: GASTOS ===================== FASE 4 ===================== -->
+        <section class="screen" id="screen-gastos" data-screen="gastos" hidden>
+          <!-- Resumen con selector Hoy / Este mes -->
+          <div class="card expense-summary">
+            <div class="segmented-control" role="tablist">
+              <button
+                class="segmented-control__btn is-active"
+                data-range="today"
+                type="button"
+              >
+                Hoy
+              </button>
+              <button
+                class="segmented-control__btn"
+                data-range="month"
+                type="button"
+              >
+                Este mes
+              </button>
+            </div>
+            <span class="expense-summary__label" id="expenseSummaryLabel"
+              >Total gastado hoy</span
+            >
+            <span class="expense-summary__total" id="expenseSummaryTotal"
+              >S/ 0.00</span
+            >
+          </div>
+
+          <!-- Formulario simple: Concepto y Monto -->
+          <form class="card expense-form" id="expenseForm">
+            <p class="expense-form__title">Registrar gasto</p>
+
+            <p class="modal-error" id="expenseError" hidden></p>
+
+            <div class="product-field">
+              <label for="inputConcept">Concepto</label>
+              <input
+                type="text"
+                id="inputConcept"
+                placeholder="Ej. Bolsas, transporte, luz..."
+                required
+              />
+            </div>
+
+            <div class="product-field">
+              <label for="inputAmount">Monto</label>
+              <input
+                type="number"
+                id="inputAmount"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn-primary" id="expenseSubmitBtn">
+              Agregar gasto
+            </button>
+          </form>
+
+          <!-- Lista de gastos del rango seleccionado (Hoy / Este mes) -->
+          <div class="expense-list" id="expenseList"></div>
+
+          <!-- Estado vacío -->
+          <div class="empty-state" id="expenseEmpty" hidden>
+            <p>💸 No hay gastos registrados</p>
+            <span class="empty-state__sub"
+              >Los gastos que agregues aparecerán aquí</span
+            >
+          </div>
+        </section>
+
+        <!-- SECCIÓN: INVENTARIO ===================== FASE 3 ===================== -->
+        <section
+          class="screen"
+          id="screen-inventario"
+          data-screen="inventario"
+          hidden
+        >
+          <div class="inventory-header">
+            <div>
+              <h2 class="inventory-header__title">Mis productos</h2>
+              <span class="inventory-header__count" id="productsCount"
+                >0 productos</span
+              >
+            </div>
+          </div>
+
+          <!-- 🔐 Se llena dinámicamente con los productos de la vendedora (inventario.js) -->
+          <div class="products-grid" id="productsGrid"></div>
+
+          <!-- Estado vacío: se muestra solo cuando la vendedora no tiene productos aún -->
+          <div class="empty-state" id="productsEmpty" hidden>
+            <p>👗 Todavía no tienes productos</p>
+            <span class="empty-state__sub"
+              >Toca el botón + para agregar el primero</span
+            >
+          </div>
+        </section>
+      </main>
+
+      <!-- 🎨 Botón flotante para agregar producto, solo visible en la sección Inventario -->
+      <button
+        class="fab"
+        id="addProductBtn"
+        type="button"
+        aria-label="Agregar producto"
+        hidden
+      >
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M12 5v14M5 12h14"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+
+      <!-- ===================== BARRA DE NAVEGACIÓN INFERIOR FIJA ===================== -->
+      <!-- 🎨 Solo 3 secciones, tal como pediste. El ícono activo se resalta con un círculo coral -->
+      <nav class="bottom-nav" aria-label="Navegación principal">
+        <button
+          class="bottom-nav__item is-active"
+          data-target="principal"
+          type="button"
+        >
+          <span class="bottom-nav__icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M3 10.5 12 3l9 7.5"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="bottom-nav__label">Principal</span>
+        </button>
+
+        <button class="bottom-nav__item" data-target="gastos" type="button">
+          <span class="bottom-nav__icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="9"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="M12 7v10M9.5 9.3c0-1.1 1.1-2 2.5-2s2.5.7 2.5 1.8-1 1.7-2.5 1.9-2.5.8-2.5 1.9 1.1 1.8 2.5 1.8 2.5-.9 2.5-2"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="bottom-nav__label">Gastos</span>
+        </button>
+
+        <button class="bottom-nav__item" data-target="inventario" type="button">
+          <span class="bottom-nav__icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M4 8 12 4l8 4-8 4-8-4Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M4 8v8l8 4 8-4V8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 12v8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="bottom-nav__label">Inventario</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- ===================== MODAL: AGREGAR PRODUCTO (FASE 3) ===================== -->
+    <!-- 🔐 Formulario que sube la foto a Storage y guarda el producto en Firestore -->
+    <div class="modal-overlay" id="productModal" hidden>
+      <div class="modal-sheet">
+        <div class="modal-sheet__handle"></div>
+        <div class="modal-sheet__header">
+          <h3>Nuevo producto</h3>
+          <button
+            type="button"
+            class="modal-close"
+            id="closeProductModal"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p class="modal-error" id="productError" hidden></p>
+
+        <form class="product-form" id="productForm">
+          <!-- 🔧 Selector de foto: abre cámara o galería según lo que elija el celular -->
+          <label class="photo-picker" for="inputPhoto" id="photoPicker">
+            <img class="photo-picker__preview" id="photoPreview" hidden />
+            <span class="photo-picker__placeholder" id="photoPlaceholder">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle
+                  cx="12"
+                  cy="14"
+                  r="3.5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+              <span>Tomar / elegir foto</span>
+            </span>
+          </label>
+          <input type="file" id="inputPhoto" accept="image/*" hidden />
+
+          <div class="product-field">
+            <label for="inputProductName">Nombre</label>
+            <input
+              type="text"
+              id="inputProductName"
+              placeholder="Ej. Blusa floral"
+              required
+            />
+          </div>
+
+          <div class="product-row">
+            <div class="product-field">
+              <label for="inputSize">Talla</label>
+              <input type="text" id="inputSize" placeholder="Ej. M" required />
+            </div>
+            <div class="product-field">
+              <label for="inputColor">Color</label>
+              <input
+                type="text"
+                id="inputColor"
+                placeholder="Ej. Rojo"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="product-row">
+            <div class="product-field">
+              <label for="inputCost">Costo</label>
+              <input
+                type="number"
+                id="inputCost"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                required
+              />
+            </div>
+            <div class="product-field">
+              <label for="inputPrice">Precio de venta</label>
+              <input
+                type="number"
+                id="inputPrice"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="product-field">
+            <label for="inputStock">Stock (cantidad)</label>
+            <input
+              type="number"
+              id="inputStock"
+              placeholder="0"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn-primary" id="productSubmitBtn">
+            Guardar producto
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 🔐 Configuración e inicialización de Firebase (Auth + Firestore + Storage) -->
+    <script type="module" src="js/firebaseConfig.js"></script>
+    <!-- 🔐 Lógica de autenticación: login, registro, sesión activa y cerrar sesión -->
+    <script type="module" src="js/auth.js"></script>
+    <!-- Lógica general de la app (navegación entre secciones) -->
+    <script type="module" src="js/app.js"></script>
+    <!-- 🔐 Lógica de Inventario: alta de productos con foto y listado en tiempo real -->
+    <script type="module" src="js/inventario.js"></script>
+    <!-- 🔐 Lógica de Gastos: registro simple y lista filtrada por Hoy / Este mes -->
+    <script type="module" src="js/gastos.js"></script>
+  </body>
+</html>

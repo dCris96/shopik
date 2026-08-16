@@ -1,0 +1,929 @@
+/* =========================================================================
+   VENTAFÁCIL · styles.css
+   🎨 Paleta de colores extraída de las capturas de referencia:
+      - Coral/rojo de acento (botones, activo, badges)
+      - Degradado morado→azul (banners y elementos destacados)
+      - Fondos pastel para tarjetas (amarillo-verde, rosa, menta, lavanda)
+      - Fondo general blanco/gris muy claro
+   Todo el archivo usa variables CSS para que sea fácil de personalizar.
+   ========================================================================= */
+
+/* ---------------------- 🎨 VARIABLES DE DISEÑO (personalizable) ---------------------- */
+:root {
+  /* Colores principales */
+  --color-primary: #ff6b6b; /* Coral: botones principales, iconos activos */
+  --color-primary-dark: #f1503f; /* Coral oscuro: estados :active/hover */
+  --color-primary-light: #ffe3e0; /* Coral muy claro: fondos de badges/alertas suaves */
+
+  /* Degradado destacado (banners tipo "hero") */
+  --gradient-hero: linear-gradient(135deg, #8c6ef2 0%, #4fa8f5 100%);
+
+  /* Colores pastel para tarjetas de contenido (productos, categorías, etc.) */
+  --pastel-yellow: #e8f5b0;
+  --pastel-pink: #fbddea;
+  --pastel-mint: #cff3e4;
+  --pastel-lavender: #e6e0fb;
+
+  /* Semánticos */
+  --color-success: #3bb273; /* Ventas / ingresos */
+  --color-danger: #f1503f; /* Gastos / eliminar */
+  --color-warning: #f5b942;
+
+  /* Neutros */
+  --color-bg: #f7f7fb; /* Fondo general de la app */
+  --color-surface: #ffffff; /* Tarjetas, header, nav */
+  --color-border: #ededf4;
+  --color-text: #1f2333; /* Texto principal */
+  --color-text-muted: #8a8fa3; /* Texto secundario */
+  --color-text-inverse: #ffffff;
+
+  /* Tipografía */
+  --font-main:
+    "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Radios y sombras (tarjetas redondeadas como en las capturas) */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --shadow-card: 0 6px 20px rgba(31, 35, 51, 0.06);
+  --shadow-nav: 0 -4px 16px rgba(31, 35, 51, 0.06);
+
+  /* Espaciados consistentes */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Altura de la barra inferior (usada para dar padding al contenido) */
+  --bottom-nav-height: 74px;
+}
+
+/* ---------------------- RESET MÓVIL BÁSICO ---------------------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior-y: none; /* Evita el "rebote" molesto en iOS al hacer scroll */
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.4;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: 16px; /* evita que iOS haga zoom automático al enfocar un input */
+}
+
+ul,
+ol {
+  list-style: none;
+}
+a {
+  text-decoration: none;
+  color: inherit;
+}
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* 🔧 FIX GLOBAL: garantiza que cualquier elemento con el atributo [hidden]
+   quede oculto sin importar qué otra clase de display le pongamos
+   (.app, .auth-field, etc. usan display:flex y le ganaban a [hidden]).
+   Esto evita que este mismo bug reaparezca en fases futuras. */
+[hidden] {
+  display: none !important;
+}
+
+/* ---------------------- 🔐 PANTALLA DE AUTENTICACIÓN (Login / Registro) ---------------------- */
+.auth-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: var(--gradient-hero);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-lg);
+  box-shadow: 0 20px 40px rgba(31, 35, 51, 0.18);
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.auth-brand__logo {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-hero);
+  color: var(--color-text-inverse);
+  font-weight: 800;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-sm);
+}
+
+.auth-brand__title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.auth-brand__subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* Pestañas Iniciar sesión / Crear cuenta */
+.auth-tabs {
+  display: flex;
+  background-color: var(--color-bg);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  margin-bottom: var(--space-md);
+}
+
+.auth-tabs__btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.auth-tabs__btn.is-active {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+}
+
+/* Mensaje de error de autenticación */
+.auth-error {
+  background-color: var(--color-primary-light);
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.auth-field input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  font-size: 15px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  transition: border-color 0.2s ease;
+}
+
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.auth-submit {
+  margin-top: var(--space-sm);
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: var(--space-lg);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.auth-switch button {
+  color: var(--color-primary);
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* ---------------------- CONTENEDOR GENERAL DE LA APP ---------------------- */
+.app {
+  max-width: 480px; /* Centra la app tipo "móvil" también en pantallas de escritorio */
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-bg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------------- HEADER SUPERIOR ---------------------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+  padding-top: max(var(--space-lg), env(safe-area-inset-top));
+  background-color: var(--color-bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-header__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.app-header__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-hero);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+/* 🔐 Botón de cerrar sesión: siempre visible en el header, discreto pero accesible */
+.logout-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+  transition:
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.logout-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.logout-btn:active {
+  color: var(--color-danger);
+  transform: scale(0.92);
+}
+
+/* ---------------------- CONTENIDO PRINCIPAL ---------------------- */
+.app-content {
+  flex: 1;
+  padding: 0 var(--space-md);
+  padding-bottom: calc(var(--bottom-nav-height) + var(--space-lg));
+  overflow-y: auto;
+}
+
+.screen {
+  animation: fadeIn 0.22s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tarjeta placeholder temporal (se reemplaza en cada fase por contenido real) */
+.placeholder-card {
+  background-color: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-top: var(--space-lg);
+}
+
+.placeholder-card p {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.placeholder-card__sub {
+  font-size: 13px;
+}
+
+/* ---------------------- BARRA DE NAVEGACIÓN INFERIOR FIJA ---------------------- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: var(--shadow-nav);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: var(--space-sm) var(--space-sm);
+  padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
+  height: var(--bottom-nav-height);
+  z-index: 20;
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  color: var(--color-text-muted);
+  transition: color 0.2s ease;
+}
+
+.bottom-nav__icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.bottom-nav__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bottom-nav__label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Estado activo: círculo coral relleno detrás del ícono, como en las capturas de referencia */
+.bottom-nav__item.is-active {
+  color: var(--color-primary);
+}
+
+.bottom-nav__item.is-active .bottom-nav__icon {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 14px rgba(255, 107, 107, 0.4);
+}
+
+.bottom-nav__item.is-active .bottom-nav__label {
+  font-weight: 700;
+}
+
+.bottom-nav__item:active .bottom-nav__icon {
+  transform: scale(0.92) translateY(-4px);
+}
+
+/* ---------------------- 🎨 INVENTARIO: header y grilla de productos ---------------------- */
+.inventory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.inventory-header__title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.inventory-header__count {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+/* Tarjeta de producto: foto + datos, tonos pastel de fondo como en las capturas de referencia */
+.product-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+
+.product-card__photo-wrap {
+  aspect-ratio: 1 / 1;
+  background-color: var(--pastel-lavender);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.product-card__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-card__photo-wrap svg {
+  width: 32px;
+  height: 32px;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.product-card__body {
+  padding: 10px 12px 12px;
+}
+
+.product-card__name {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-card__tags {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.product-card__price {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Badge de stock: coral si está bajo, verde si hay suficiente */
+.product-card__stock {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background-color: rgba(255, 255, 255, 0.92);
+  color: var(--color-text);
+}
+
+.product-card__stock.is-low {
+  color: var(--color-danger);
+}
+
+/* Botón de eliminar producto, discreto en la esquina de la tarjeta */
+.product-card__delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background-color: rgba(255, 255, 255, 0.92);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.product-card__delete:active {
+  color: var(--color-danger);
+  transform: scale(0.9);
+}
+
+/* Estado vacío del inventario */
+.empty-state {
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  color: var(--color-text-muted);
+  margin-top: var(--space-lg);
+}
+
+.empty-state p {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.empty-state__sub {
+  font-size: 13px;
+}
+
+/* ---------------------- 🎨 BOTÓN FLOTANTE (+) ---------------------- */
+.fab {
+  position: fixed;
+  right: max(20px, calc((100vw - 480px) / 2 + 20px));
+  bottom: calc(var(--bottom-nav-height) + 16px);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 20px rgba(255, 107, 107, 0.4);
+  z-index: 15;
+  transition: transform 0.15s ease;
+}
+
+.fab svg {
+  width: 24px;
+  height: 24px;
+}
+
+.fab:active {
+  transform: scale(0.92);
+}
+
+/* ---------------------- 🔐 MODAL: FORMULARIO DE PRODUCTO ---------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(31, 35, 51, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 30;
+}
+
+.modal-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-md) var(--space-lg) var(--space-xl);
+  animation: slideUp 0.22s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-sheet__handle {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-border);
+  margin: 0 auto var(--space-md);
+}
+
+.modal-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.modal-sheet__header h3 {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.modal-close {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.modal-error {
+  background-color: var(--color-primary-light);
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+}
+
+.product-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Selector de foto: círculo/cuadro grande y claro, invita a tocar */
+.photo-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 140px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg);
+  border: 1.5px dashed var(--color-border);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.photo-picker__preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-picker__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.photo-picker__placeholder svg {
+  width: 30px;
+  height: 30px;
+}
+
+.product-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.product-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.product-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.product-field input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  font-size: 15px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  transition: border-color 0.2s ease;
+}
+
+.product-field input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* ---------------------- 🎨 GASTOS: resumen, selector Hoy/Mes ---------------------- */
+.expense-summary {
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-md);
+  text-align: center;
+}
+
+.segmented-control {
+  display: flex;
+  background-color: var(--color-bg);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  margin-bottom: var(--space-md);
+}
+
+.segmented-control__btn {
+  flex: 1;
+  padding: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.segmented-control__btn.is-active {
+  background-color: var(--color-surface);
+  color: var(--color-danger);
+  box-shadow: var(--shadow-card);
+}
+
+.expense-summary__label {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.expense-summary__total {
+  display: block;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--color-danger);
+  letter-spacing: -0.02em;
+}
+
+/* ---------------------- 🎨 GASTOS: formulario simple ---------------------- */
+.expense-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.expense-form__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ---------------------- 🎨 GASTOS: lista de movimientos ---------------------- */
+.expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.expense-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.expense-row__icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-primary-light);
+  color: var(--color-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.expense-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.expense-row__concept {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expense-row__date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.expense-row__amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-danger);
+  white-space: nowrap;
+}
+
+.expense-row__delete {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.expense-row__delete:active {
+  color: var(--color-danger);
+  transform: scale(0.9);
+}
+
+/* ---------------------- UTILIDADES REUTILIZABLES EN FASES SIGUIENTES ---------------------- */
+
+/* 🎨 Botón principal grande (usado para "Registrar Venta", "Registrar Gasto", etc. en fases futuras) */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 6px 14px rgba(255, 107, 107, 0.3);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 8px rgba(255, 107, 107, 0.25);
+}
+
+/* 🎨 Tarjeta base tipo "surface" reutilizable en Dashboard, Inventario y Gastos */
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-card);
+}
