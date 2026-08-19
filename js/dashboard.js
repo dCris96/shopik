@@ -1,5 +1,5 @@
 // =========================================================================
-// VENTAFÁCIL · dashboard.js
+// SHOPIK · dashboard.js
 // 🔐 Cerebro de la pantalla Principal:
 //    - Registrar Venta: elige un producto del inventario, descuenta stock
 //      y guarda la venta en la colección "sales".
@@ -72,12 +72,12 @@ quickSaleBtn.addEventListener("click", () => {
     alert("Primero agrega al menos un producto en Inventario.");
     return;
   }
-  saleModal.hidden = false;
+  saleModal.classList.add("is-open");
   updateSaleTotalPreview();
 });
 
 quickExpenseBtn.addEventListener("click", () => {
-  quickExpenseModal.hidden = false;
+  quickExpenseModal.classList.add("is-open");
 });
 
 // 🎨 Reutiliza el modal de "Agregar producto" ya construido en inventario.js (Fase 3)
@@ -86,7 +86,7 @@ quickProductBtn.addEventListener("click", () => {
 });
 
 closeSaleModal.addEventListener("click", () => {
-  saleModal.hidden = true;
+  saleModal.classList.remove("is-open");
   saleForm.reset();
   hideError(saleError);
 });
@@ -95,7 +95,7 @@ saleModal.addEventListener("click", (e) => {
 });
 
 closeQuickExpenseModal.addEventListener("click", () => {
-  quickExpenseModal.hidden = true;
+  quickExpenseModal.classList.remove("is-open");
   quickExpenseForm.reset();
   hideError(quickExpenseError);
 });
@@ -196,7 +196,7 @@ saleForm.addEventListener("submit", async (event) => {
       stock: increment(-quantity),
     });
 
-    saleModal.hidden = true;
+    saleModal.classList.remove("is-open");
     saleForm.reset();
     saleQuantity.value = 1;
   } catch (error) {
@@ -236,7 +236,7 @@ quickExpenseForm.addEventListener("submit", async (event) => {
       amount,
       createdAt: serverTimestamp(),
     });
-    quickExpenseModal.hidden = true;
+    quickExpenseModal.classList.remove("is-open");
     quickExpenseForm.reset();
   } catch (error) {
     console.error(error);

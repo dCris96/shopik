@@ -1,13 +1,17 @@
 // =========================================================================
-// VENTAFÁCIL · auth.js
+// SHOPIK · auth.js
 // 🔐 Maneja todo el flujo de autenticación con Firebase Auth:
 //    - Registro de nuevas vendedoras (crea también su documento de perfil)
 //    - Inicio de sesión
 //    - Mantener la sesión activa (onAuthStateChanged)
 //    - Cerrar sesión
+// 🎨 También coordina dos animaciones:
+//    - El splash screen al abrir la app (mientras Firebase resuelve si ya
+//      había una sesión guardada).
+//    - El check de "¡Listo!" que aparece un instante justo después de que
+//      el login o registro se confirman con éxito.
 // Cada vendedora solo verá su propia información porque todo el resto de
-// la app (Fases 3, 4 y 5) consulta las colecciones filtrando por su
-// auth.currentUser.uid.
+// la app consulta las colecciones filtrando por su auth.currentUser.uid.
 // =========================================================================
 
 import { auth, db } from "./firebaseConfig.js";
@@ -25,8 +29,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // ---------------------- Referencias al DOM ----------------------
+const splashScreen = document.getElementById("splashScreen");
 const authScreen = document.getElementById("authScreen");
 const appRoot = document.getElementById("appRoot");
+const authSuccessOverlay = document.getElementById("authSuccessOverlay");
 
 const authForm = document.getElementById("authForm");
 const authError = document.getElementById("authError");
@@ -46,6 +52,13 @@ const logoutBtn = document.getElementById("logoutBtn");
 
 // "login" | "register" — controla qué hace el formulario al enviarse
 let currentMode = "login";
+
+// 🎨 Coordinación de animaciones ---------------------------------------
+const SPLASH_MIN_TIME = 700; // ms mínimos que se ve el splash, para que no "parpadee"
+const SUCCESS_ANIM_TIME = 750; // ms que dura la animación de bienvenida tras iniciar sesión
+const splashStartedAt = Date.now();
+let isFirstAuthCheck = true; // true solo la primera vez que Firebase resuelve el estado de sesión
+let justAuthenticated = false; // true justo después de un login/registro exitoso desde el formulario
 
 // ---------------------- Alternar entre pestañas Login / Registro ----------------------
 function setMode(mode) {
@@ -138,7 +151,20 @@ authForm.addEventListener("submit", async (event) => {
       // 🔐 Inicia sesión con una cuenta existente
       await signInWithEmailAndPassword(auth, email, password);
     }
+
+    // 🎨 Login/registro exitosos: dispara la animación de bienvenida.
+    // onAuthStateChanged ya se disparó (o está por dispararse) con el nuevo
+    // usuario, pero justAuthenticated=true hace que ESPERE a mostrar la app
+    // hasta que termine esta animación, en vez de cortarla de golpe.
+    justAuthenticated = true;
+    authSuccessOverlay.classList.add("is-visible");
     authForm.reset();
+
+    setTimeout(() => {
+      authSuccessOverlay.classList.remove("is-visible");
+      justAuthenticated = false;
+      revealAppIfAuthenticated();
+    }, SUCCESS_ANIM_TIME);
   } catch (error) {
     showError(translateAuthError(error));
   } finally {
@@ -153,21 +179,43 @@ logoutBtn.addEventListener("click", async () => {
   await signOut(auth);
 });
 
-// ---------------------- Mantener sesión activa ----------------------
-// Se ejecuta automáticamente cada vez que cambia el estado de autenticación:
-// al cargar la app, al iniciar sesión, al registrarse y al cerrar sesión.
-onAuthStateChanged(auth, (user) => {
+// ---------------------- Splash screen ----------------------
+// 🎨 Se oculta cuando Firebase ya resolvió el primer estado de sesión Y ya
+// pasó el tiempo mínimo, para que la animación no se sienta como un parpadeo.
+function hideSplash() {
+  const elapsed = Date.now() - splashStartedAt;
+  const remaining = Math.max(0, SPLASH_MIN_TIME - elapsed);
+  setTimeout(() => splashScreen.classList.add("is-hidden"), remaining);
+}
+
+// ---------------------- Mostrar la app o el login, según corresponda ----------------------
+function revealAppIfAuthenticated() {
+  const user = auth.currentUser;
   if (user) {
-    // Sesión activa: muestra la app y oculta la pantalla de login/registro
     authScreen.hidden = true;
     appRoot.hidden = false;
-
     const displayName = user.displayName || user.email || "Vendedora";
     userInitial.textContent = displayName.trim().charAt(0).toUpperCase();
   } else {
-    // Sin sesión: muestra login/registro y oculta la app
     appRoot.hidden = true;
     authScreen.hidden = false;
     setMode("login");
   }
+}
+
+// ---------------------- Mantener sesión activa ----------------------
+// Se ejecuta automáticamente cada vez que cambia el estado de autenticación:
+// al cargar la app, al iniciar sesión, al registrarse y al cerrar sesión.
+onAuthStateChanged(auth, (user) => {
+  if (isFirstAuthCheck) {
+    isFirstAuthCheck = false;
+    hideSplash();
+  }
+
+  // 🎨 Si el cambio vino de un login/registro recién hecho desde el
+  // formulario, dejamos que termine su animación de bienvenida antes de
+  // cambiar de pantalla (lo hace revealAppIfAuthenticated() en el setTimeout).
+  if (justAuthenticated) return;
+
+  revealAppIfAuthenticated();
 });

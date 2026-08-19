@@ -1,5 +1,5 @@
 /* =========================================================================
-   VENTAFÁCIL · styles.css
+   SHOPIK · styles.css
    🎨 Paleta de colores extraída de las capturas de referencia:
       - Coral/rojo de acento (botones, activo, badges)
       - Degradado morado→azul (banners y elementos destacados)
@@ -117,6 +117,65 @@ img {
   display: none !important;
 }
 
+/* ---------------------- 🎨 SPLASH SCREEN (animación al abrir la app) ---------------------- */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  background: var(--gradient-hero);
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+.splash-screen.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-screen__logo {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-text-inverse);
+  letter-spacing: -0.02em;
+  animation: splashPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.splash-screen__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-text-inverse);
+  animation: splashPulse 0.9s ease-in-out infinite;
+}
+
+@keyframes splashPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
 /* ---------------------- 🔐 PANTALLA DE AUTENTICACIÓN (Login / Registro) ---------------------- */
 .auth-screen {
   min-height: 100vh;
@@ -135,6 +194,73 @@ img {
   border-radius: var(--radius-lg);
   padding: var(--space-xl) var(--space-lg);
   box-shadow: 0 20px 40px rgba(31, 35, 51, 0.18);
+  position: relative; /* 🔧 necesario para que el overlay de éxito se posicione encima del formulario */
+  overflow: hidden;
+}
+
+/* 🎨 Overlay de animación que aparece un instante justo tras iniciar sesión con éxito */
+.auth-success-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.auth-success-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.auth-success-overlay__check {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: successPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.auth-success-overlay__check svg {
+  width: 30px;
+  height: 30px;
+}
+
+.auth-success-overlay__check path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: successCheck 0.35s ease forwards 0.15s;
+}
+
+.auth-success-overlay__text {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+@keyframes successPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes successCheck {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .auth-brand {
@@ -266,6 +392,18 @@ img {
   position: relative;
   display: flex;
   flex-direction: column;
+  animation: appFadeIn 0.4s ease; /* 🎨 se reproduce cada vez que el elemento pasa de [hidden] a visible */
+}
+
+@keyframes appFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ---------------------- HEADER SUPERIOR ---------------------- */
@@ -356,28 +494,6 @@ img {
   }
 }
 
-/* Tarjeta placeholder temporal (se reemplaza en cada fase por contenido real) */
-.placeholder-card {
-  background-color: var(--color-surface);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl) var(--space-md);
-  text-align: center;
-  color: var(--color-text-muted);
-  margin-top: var(--space-lg);
-}
-
-.placeholder-card p {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: var(--space-xs);
-}
-
-.placeholder-card__sub {
-  font-size: 13px;
-}
-
 /* ---------------------- BARRA DE NAVEGACIÓN INFERIOR FIJA ---------------------- */
 .bottom-nav {
   position: fixed;
@@ -450,6 +566,41 @@ img {
 
 .bottom-nav__item:active .bottom-nav__icon {
   transform: scale(0.92) translateY(-4px);
+}
+
+/* ---------------------- 🎨 BÚSQUEDA (Inventario) ---------------------- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-pill);
+  padding: 11px 16px;
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-card);
+}
+
+.search-bar svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.search-bar input:focus {
+  outline: none;
+}
+
+.search-bar input::-webkit-search-cancel-button {
+  cursor: pointer;
 }
 
 /* ---------------------- 🎨 INVENTARIO: header y grilla de productos ---------------------- */
@@ -619,6 +770,9 @@ img {
 }
 
 /* ---------------------- 🔐 MODAL: FORMULARIO DE PRODUCTO ---------------------- */
+/* 🎨 Los modales ya NO usan [hidden]: se controlan con la clase .is-open para
+   poder animar tanto la apertura como el cierre (antes solo animaba al abrir,
+   porque [hidden] hace que el elemento aparezca/desaparezca de golpe). */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -627,6 +781,14 @@ img {
   align-items: flex-end;
   justify-content: center;
   z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.modal-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .modal-sheet {
@@ -637,18 +799,12 @@ img {
   background-color: var(--color-surface);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: var(--space-md) var(--space-lg) var(--space-xl);
-  animation: slideUp 0.22s ease;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(24px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+.modal-overlay.is-open .modal-sheet {
+  transform: translateY(0);
 }
 
 .modal-sheet__handle {
@@ -696,7 +852,7 @@ img {
   gap: var(--space-md);
 }
 
-/* Selector de foto: círculo/cuadro grande y claro, invita a tocar */
+/* Vista previa de la foto: círculo/cuadro grande y claro */
 .photo-picker {
   display: flex;
   align-items: center;
@@ -707,7 +863,6 @@ img {
   background-color: var(--color-bg);
   border: 1.5px dashed var(--color-border);
   overflow: hidden;
-  cursor: pointer;
 }
 
 .photo-picker__preview {
@@ -729,6 +884,42 @@ img {
 .photo-picker__placeholder svg {
   width: 30px;
   height: 30px;
+}
+
+/* 🎨 Botones para elegir explícitamente Cámara o Galería */
+.photo-picker-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-top: -6px;
+}
+
+.photo-picker-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.photo-picker-btn svg {
+  width: 17px;
+  height: 17px;
+  color: var(--color-text-muted);
+}
+
+.photo-picker-btn:active {
+  transform: scale(0.96);
+  border-color: var(--color-primary);
 }
 
 .product-row {
@@ -810,6 +1001,112 @@ img {
   font-weight: 800;
   color: var(--color-danger);
   letter-spacing: -0.02em;
+}
+
+/* 🎨 Chips de rango de fecha: Hoy / 7 días / Este mes / Personalizado */
+.range-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: var(--space-md);
+  padding-bottom: 2px;
+}
+
+.range-chip {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.range-chip.is-active {
+  background-color: var(--color-text);
+  color: var(--color-text-inverse);
+  border-color: var(--color-text);
+}
+
+/* 🎨 Selector de rango personalizado (Desde / Hasta) */
+.custom-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-md);
+  text-align: left;
+}
+
+.custom-range__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.custom-range__field label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.custom-range__field input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 9px;
+  font-size: 13px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.custom-range__apply {
+  flex: 0 0 100%;
+  padding: 12px;
+  font-size: 13.5px;
+}
+
+/* 🎨 Resumen de Ganancia neta del rango: Ventas / Gastos / Ganancia */
+.profit-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.profit-summary-grid__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 10px 6px;
+}
+
+.profit-summary-grid__item span {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.profit-summary-grid__item strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.profit-summary-grid__item--net strong {
+  color: var(--color-success);
 }
 
 /* ---------------------- 🎨 GASTOS: formulario simple ---------------------- */

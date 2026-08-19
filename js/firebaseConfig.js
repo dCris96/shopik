@@ -1,8 +1,12 @@
 // =========================================================================
-// VENTAFÁCIL · firebaseConfig.js
+// SHOPIK · firebaseConfig.js
 // 🔐 Este archivo conecta la app con tu proyecto de Firebase.
 // Usa el Firebase Web SDK v10+ en su versión modular, cargado desde el CDN
 // oficial de Google (no requiere instalar nada ni usar npm).
+//
+// 🔧 Nota: se decidió NO implementar modo offline (ni ahora ni a futuro),
+// así que Firestore se inicializa de forma simple con getFirestore(), sin
+// caché persistente. La app siempre requiere conexión a internet.
 // =========================================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -11,12 +15,7 @@ import {
   setPersistence,
   browserLocalPersistence,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import {
-  initializeFirestore,
-  persistentLocalCache,
-  persistentSingleTabManager,
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // -------------------------------------------------------------------------
 // 🔧 QUÉ DEBO CAMBIAR:
@@ -37,29 +36,15 @@ const firebaseConfig = {
 // 🔐 Inicializa la app de Firebase con la configuración anterior
 const firebaseApp = initializeApp(firebaseConfig);
 
-// -------------------------------------------------------------------------
-// 🔐 FIRESTORE con persistencia offline habilitada.
-// Esto permite que la vendedora siga registrando ventas, gastos y productos
-// aunque se quede sin señal dentro del centro comercial; Firestore
-// sincroniza automáticamente en cuanto vuelve la conexión.
-// (Usamos persistentLocalCache, que es el equivalente moderno de
-// enableIndexedDbPersistence en el SDK v10+)
-// -------------------------------------------------------------------------
-const db = initializeFirestore(firebaseApp, {
-  localCache: persistentLocalCache({
-    tabManager: persistentSingleTabManager({}),
-  }),
-});
+// 🔐 Firestore (sin caché offline, ver nota arriba)
+const db = getFirestore(firebaseApp);
 
-// 🔐 Autenticación (se configura a fondo en la FASE 2)
+// 🔐 Autenticación
 const auth = getAuth(firebaseApp);
 setPersistence(auth, browserLocalPersistence); // Mantiene la sesión iniciada entre visitas
-
-// 🔐 Storage: aquí se guardarán las fotos de los productos (Fase 3)
-const storage = getStorage(firebaseApp);
 
 // -------------------------------------------------------------------------
 // Exportamos las instancias para usarlas en el resto de archivos JS
 // (app.js, auth.js, inventario.js, gastos.js, dashboard.js, etc.)
 // -------------------------------------------------------------------------
-export { firebaseApp, auth, db, storage };
+export { firebaseApp, auth, db };

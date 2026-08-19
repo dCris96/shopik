@@ -1,14 +1,16 @@
 // =========================================================================
-// VENTAFÁCIL · inventario.js
+// SHOPIK · inventario.js
 // 🔐 Gestión de productos:
-//    - Formulario: foto, nombre, talla, color, costo, precio, stock
-//    - Sube la foto a Firebase Storage y guarda el producto en Firestore,
-//      SIEMPRE vinculado al userId de la vendedora que inició sesión.
+//    - Formulario: foto (cámara o galería, comprimida), nombre, talla,
+//      color, costo, precio, stock.
+//    - Sube la foto comprimida a Cloudinary y guarda el producto en
+//      Firestore, SIEMPRE vinculado al userId de la vendedora.
 //    - Escucha en tiempo real (onSnapshot) solo los productos de esa
 //      vendedora, así cada una ve únicamente su propio inventario.
 // =========================================================================
 
-import { auth, db, storage } from "./firebaseConfig.js";
+import { auth, db } from "./firebaseConfig.js";
+import { uploadProductPhoto } from "./cloudinary.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   collection,
@@ -21,12 +23,6 @@ import {
   orderBy,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
 // ---------------------- Referencias al DOM ----------------------
 const addProductBtn = document.getElementById("addProductBtn");
@@ -37,10 +33,12 @@ const productForm = document.getElementById("productForm");
 const productError = document.getElementById("productError");
 const productSubmitBtn = document.getElementById("productSubmitBtn");
 
-const photoPicker = document.getElementById("photoPicker");
-const inputPhoto = document.getElementById("inputPhoto");
 const photoPreview = document.getElementById("photoPreview");
 const photoPlaceholder = document.getElementById("photoPlaceholder");
+const photoCameraBtn = document.getElementById("photoCameraBtn");
+const photoGalleryBtn = document.getElementById("photoGalleryBtn");
+const inputPhotoCamera = document.getElementById("inputPhotoCamera");
+const inputPhotoGallery = document.getElementById("inputPhotoGallery");
 
 const inputProductName = document.getElementById("inputProductName");
 const inputSize = document.getElementById("inputSize");
@@ -51,18 +49,22 @@ const inputStock = document.getElementById("inputStock");
 
 const productsGrid = document.getElementById("productsGrid");
 const productsEmpty = document.getElementById("productsEmpty");
+const productsNoResults = document.getElementById("productsNoResults");
 const productsCount = document.getElementById("productsCount");
+const productSearchInput = document.getElementById("productSearchInput");
 
 let selectedPhotoFile = null;
 let unsubscribeProducts = null; // guarda la función para dejar de escuchar Firestore al cerrar sesión
+let allProducts = []; // caché local de todos los productos, para poder filtrar sin volver a leer Firestore
+let searchQuery = "";
 
-// ---------------------- Abrir / cerrar el modal ----------------------
+// ---------------------- Abrir / cerrar el modal (animado desde abajo) ----------------------
 function openModal() {
-  productModal.hidden = false;
+  productModal.classList.add("is-open");
 }
 
 function closeModal() {
-  productModal.hidden = true;
+  productModal.classList.remove("is-open");
   resetForm();
 }
 
@@ -93,14 +95,18 @@ function hideError() {
   productError.textContent = "";
 }
 
-// ---------------------- Selección de foto (cámara o galería) ----------------------
-inputPhoto.addEventListener("change", () => {
-  const file = inputPhoto.files[0];
-  if (!file) return;
+// ---------------------- Selección de foto: Cámara o Galería ----------------------
+// 🔧 Cada botón dispara su propio input de archivo oculto:
+//    - inputPhotoCamera tiene capture="environment" → abre la cámara directo.
+//    - inputPhotoGallery no tiene "capture" → abre el selector normal.
+photoCameraBtn.addEventListener("click", () => inputPhotoCamera.click());
+photoGalleryBtn.addEventListener("click", () => inputPhotoGallery.click());
 
+function handlePhotoSelected(file) {
+  if (!file) return;
   selectedPhotoFile = file;
 
-  // 🎨 Vista previa inmediata de la foto elegida
+  // 🎨 Vista previa inmediata de la foto elegida (antes de comprimir/subir)
   const reader = new FileReader();
   reader.onload = () => {
     photoPreview.src = reader.result;
@@ -108,6 +114,19 @@ inputPhoto.addEventListener("change", () => {
     photoPlaceholder.hidden = true;
   };
   reader.readAsDataURL(file);
+}
+
+inputPhotoCamera.addEventListener("change", () =>
+  handlePhotoSelected(inputPhotoCamera.files[0]),
+);
+inputPhotoGallery.addEventListener("change", () =>
+  handlePhotoSelected(inputPhotoGallery.files[0]),
+);
+
+// ---------------------- Búsqueda: filtra al instante por nombre, talla o color ----------------------
+productSearchInput.addEventListener("input", () => {
+  searchQuery = productSearchInput.value.trim().toLowerCase();
+  renderProducts();
 });
 
 // ---------------------- Guardar producto (submit del formulario) ----------------------
@@ -131,14 +150,13 @@ productForm.addEventListener("submit", async (event) => {
   const stock = parseInt(inputStock.value, 10);
 
   productSubmitBtn.disabled = true;
-  productSubmitBtn.textContent = "Guardando...";
+  productSubmitBtn.textContent = "Comprimiendo foto...";
 
   try {
-    // 🔐 1) Sube la foto a Storage en una carpeta exclusiva de esta vendedora
-    const filePath = `products/${user.uid}/${Date.now()}_${selectedPhotoFile.name}`;
-    const storageRef = ref(storage, filePath);
-    await uploadBytes(storageRef, selectedPhotoFile);
-    const photoURL = await getDownloadURL(storageRef);
+    // 🔐 1) Comprime la foto en el celular y la sube a Cloudinary
+    const photoURL = await uploadProductPhoto(selectedPhotoFile);
+
+    productSubmitBtn.textContent = "Guardando...";
 
     // 🔐 2) Guarda el producto en Firestore, vinculado al userId de la vendedora
     await addDoc(collection(db, "products"), {
@@ -150,7 +168,6 @@ productForm.addEventListener("submit", async (event) => {
       price,
       stock,
       photoURL,
-      photoPath: filePath, // se guarda para poder borrar la foto de Storage si se elimina el producto
       createdAt: serverTimestamp(),
     });
 
@@ -186,7 +203,10 @@ function renderProductCard(productId, product) {
     </div>
   `;
 
-  // 🔐 Eliminar producto (borra también la foto en Storage)
+  // 🔐 Eliminar producto. Nota: la foto queda en Cloudinary (borrarla requiere
+  // una petición firmada desde un backend, ya que el preset "unsigned" solo
+  // permite subir, no eliminar, por seguridad). Puedes limpiar fotos huérfanas
+  // desde el propio panel de Cloudinary cuando quieras.
   card
     .querySelector(".product-card__delete")
     .addEventListener("click", async (event) => {
@@ -198,9 +218,6 @@ function renderProductCard(productId, product) {
 
       try {
         await deleteDoc(doc(db, "products", productId));
-        if (product.photoPath) {
-          await deleteObject(ref(storage, product.photoPath)).catch(() => {});
-        }
       } catch (error) {
         console.error(error);
         alert("No se pudo eliminar el producto.");
@@ -208,6 +225,36 @@ function renderProductCard(productId, product) {
     });
 
   return card;
+}
+
+// ---------------------- Filtrar por búsqueda y dibujar la grilla ----------------------
+function renderProducts() {
+  const filtered = searchQuery
+    ? allProducts.filter((p) => {
+        const haystack = `${p.name} ${p.size} ${p.color}`.toLowerCase();
+        return haystack.includes(searchQuery);
+      })
+    : allProducts;
+
+  productsGrid.innerHTML = "";
+
+  if (allProducts.length === 0) {
+    // Sin productos en absoluto todavía
+    productsEmpty.hidden = false;
+    productsNoResults.hidden = true;
+  } else if (filtered.length === 0) {
+    // Hay productos, pero ninguno coincide con la búsqueda
+    productsEmpty.hidden = true;
+    productsNoResults.hidden = false;
+  } else {
+    productsEmpty.hidden = true;
+    productsNoResults.hidden = true;
+    filtered.forEach((product) => {
+      productsGrid.appendChild(renderProductCard(product.id, product));
+    });
+  }
+
+  productsCount.textContent = `${filtered.length} producto${filtered.length === 1 ? "" : "s"}`;
 }
 
 // ---------------------- Escuchar los productos de la vendedora en tiempo real ----------------------
@@ -219,18 +266,11 @@ function listenToProducts(uid) {
   );
 
   unsubscribeProducts = onSnapshot(productsQuery, (snapshot) => {
-    productsGrid.innerHTML = "";
-
-    if (snapshot.empty) {
-      productsEmpty.hidden = false;
-    } else {
-      productsEmpty.hidden = true;
-      snapshot.forEach((docSnap) => {
-        productsGrid.appendChild(renderProductCard(docSnap.id, docSnap.data()));
-      });
-    }
-
-    productsCount.textContent = `${snapshot.size} producto${snapshot.size === 1 ? "" : "s"}`;
+    allProducts = snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    }));
+    renderProducts();
   });
 }
 
@@ -244,6 +284,9 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     listenToProducts(user.uid);
   } else {
+    allProducts = [];
+    searchQuery = "";
+    productSearchInput.value = "";
     productsGrid.innerHTML = "";
   }
 });
