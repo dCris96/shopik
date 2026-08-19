@@ -153,13 +153,20 @@ productForm.addEventListener("submit", async (event) => {
   productSubmitBtn.textContent = "Comprimiendo foto...";
 
   try {
-    // 🔐 1) Comprime la foto en el celular y la sube a Cloudinary
+    // 🔐 1) Comprime la foto en el celular y la sube a Cloudinary (esto sí es
+    // una petición HTTP real que conviene esperar antes de continuar)
     const photoURL = await uploadProductPhoto(selectedPhotoFile);
 
     productSubmitBtn.textContent = "Guardando...";
 
-    // 🔐 2) Guarda el producto en Firestore, vinculado al userId de la vendedora
-    await addDoc(collection(db, "products"), {
+    // 🔧 2) Guarda el producto en Firestore SIN esperar la confirmación del
+    // servidor. Con persistencia offline activa, la promesa de addDoc() no
+    // se resuelve hasta que hay conexión y el servidor confirma — si la
+    // esperáramos aquí, el botón se quedaría en "Guardando..." para siempre
+    // sin buena señal. El producto ya se ve al instante gracias al caché
+    // local (por eso aparecía en pantalla aunque el botón no reaccionara),
+    // y Firestore lo sincroniza solo en cuanto vuelve la conexión.
+    addDoc(collection(db, "products"), {
       userId: user.uid,
       name,
       size,
@@ -169,12 +176,19 @@ productForm.addEventListener("submit", async (event) => {
       stock,
       photoURL,
       createdAt: serverTimestamp(),
+    }).catch((error) => {
+      console.error(
+        "No se pudo sincronizar el producto con el servidor:",
+        error,
+      );
     });
 
     closeModal();
   } catch (error) {
     console.error(error);
-    showError("No se pudo guardar el producto. Inténtalo de nuevo.");
+    showError(
+      "No se pudo subir la foto. Verifica tu conexión e inténtalo de nuevo.",
+    );
   } finally {
     productSubmitBtn.disabled = false;
     productSubmitBtn.textContent = "Guardar producto";

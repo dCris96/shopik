@@ -1,12 +1,13 @@
 // =========================================================================
-// VENTAFÁCIL · gastos.js
-// 🔐 Registro de gastos:
-//    - Formulario simple: Concepto y Monto.
-//    - Se guarda en la colección "expenses", vinculado al userId de la
-//      vendedora, igual que en Inventario.
-//    - La lista se puede filtrar entre "Hoy" y "Este mes" (el filtrado
-//      por fecha se hace en el navegador para no depender de índices
-//      compuestos de Firestore).
+// SHOPIK · gastos.js
+// 🔐 Sección Gastos, con dos vistas:
+//    - "Gastos": formulario simple (Concepto y Monto) + lista de gastos.
+//    - "Ganancia neta": Ventas, Gastos y Ganancia neta del rango elegido,
+//      con la lista de movimientos combinados (solo lectura).
+//    En ambas vistas se puede elegir el rango de fechas: Hoy, 7 días,
+//    Este mes, o un rango Personalizado (Desde/Hasta).
+//    El filtrado por fecha se hace en el navegador para no depender de
+//    índices compuestos de Firestore.
 // =========================================================================
 
 import { auth, db } from "./firebaseConfig.js";
@@ -23,26 +24,50 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// ---------------------- Referencias al DOM ----------------------
+// ---------------------- Referencias al DOM: formulario ----------------------
 const expenseForm = document.getElementById("expenseForm");
 const expenseError = document.getElementById("expenseError");
 const expenseSubmitBtn = document.getElementById("expenseSubmitBtn");
-
 const inputConcept = document.getElementById("inputConcept");
 const inputAmount = document.getElementById("inputAmount");
 
-const rangeButtons = document.querySelectorAll(".segmented-control__btn");
+// ---------------------- Referencias al DOM: selector de métrica y rango ----------------------
+const metricButtons = document.querySelectorAll(
+  "#metricControl .segmented-control__btn",
+);
+const rangeChips = document.querySelectorAll(".range-chip");
+const customRange = document.getElementById("customRange");
+const rangeFrom = document.getElementById("rangeFrom");
+const rangeTo = document.getElementById("rangeTo");
+const applyCustomRange = document.getElementById("applyCustomRange");
+
+// ---------------------- Referencias al DOM: vista "Gastos" ----------------------
+const summaryExpenses = document.getElementById("summaryExpenses");
 const expenseSummaryLabel = document.getElementById("expenseSummaryLabel");
 const expenseSummaryTotal = document.getElementById("expenseSummaryTotal");
-
 const expenseList = document.getElementById("expenseList");
 const expenseEmpty = document.getElementById("expenseEmpty");
 
-let allExpenses = []; // todos los gastos de la vendedora, ya ordenados por fecha
-let currentRange = "today"; // "today" | "month"
-let unsubscribeExpenses = null;
+// ---------------------- Referencias al DOM: vista "Ganancia neta" ----------------------
+const summaryProfit = document.getElementById("summaryProfit");
+const profitSales = document.getElementById("profitSales");
+const profitExpenses = document.getElementById("profitExpenses");
+const profitNet = document.getElementById("profitNet");
+const rangeMovementsList = document.getElementById("rangeMovementsList");
+const rangeMovementsEmpty = document.getElementById("rangeMovementsEmpty");
 
-// ---------------------- Guardar un gasto (submit del formulario) ----------------------
+let allExpenses = []; // todos los gastos de la vendedora (con fecha ya convertida)
+let allSales = []; // todas las ventas de la vendedora (con fecha ya convertida)
+let currentMetric = "expenses"; // "expenses" | "profit"
+let currentRange = "today"; // "today" | "week" | "month" | "custom"
+let customFromDate = null;
+let customToDate = null;
+let unsubscribeExpenses = null;
+let unsubscribeSales = null;
+
+// =========================================================================
+// GUARDAR UN GASTO (submit del formulario)
+// =========================================================================
 expenseForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideError();
@@ -61,43 +86,89 @@ expenseForm.addEventListener("submit", async (event) => {
   expenseSubmitBtn.disabled = true;
   expenseSubmitBtn.textContent = "Guardando...";
 
-  try {
-    // 🔐 Guarda el gasto en Firestore, vinculado al userId de la vendedora
-    await addDoc(collection(db, "expenses"), {
-      userId: user.uid,
-      concept,
-      amount,
-      createdAt: serverTimestamp(),
-    });
-    expenseForm.reset();
-  } catch (error) {
-    console.error(error);
-    showError("No se pudo guardar el gasto. Inténtalo de nuevo.");
-  } finally {
-    expenseSubmitBtn.disabled = false;
-    expenseSubmitBtn.textContent = "Agregar gasto";
-  }
+  // 🔧 No esperamos (await) la confirmación del servidor: con persistencia
+  // offline activa, esa promesa no se resuelve hasta que hay conexión, y el
+  // botón se quedaría en "Guardando..." indefinidamente sin buena señal.
+  // El gasto ya se refleja al instante gracias al caché local de Firestore.
+  addDoc(collection(db, "expenses"), {
+    userId: user.uid,
+    concept,
+    amount,
+    createdAt: serverTimestamp(),
+  }).catch((error) => {
+    console.error("No se pudo sincronizar el gasto con el servidor:", error);
+  });
+
+  expenseForm.reset();
+  expenseSubmitBtn.disabled = false;
+  expenseSubmitBtn.textContent = "Agregar gasto";
 });
 
 function showError(message) {
   expenseError.textContent = message;
   expenseError.hidden = false;
 }
-
 function hideError() {
   expenseError.hidden = true;
   expenseError.textContent = "";
 }
 
-// ---------------------- Selector Hoy / Este mes ----------------------
-rangeButtons.forEach((btn) => {
+// =========================================================================
+// SELECTOR DE MÉTRICA: Gastos | Ganancia neta
+// =========================================================================
+metricButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
-    currentRange = btn.dataset.range;
-    rangeButtons.forEach((b) => b.classList.toggle("is-active", b === btn));
-    expenseSummaryLabel.textContent =
-      currentRange === "today" ? "Total gastado hoy" : "Total gastado este mes";
-    renderExpenses();
+    currentMetric = btn.dataset.metric;
+    metricButtons.forEach((b) => b.classList.toggle("is-active", b === btn));
+
+    const isProfit = currentMetric === "profit";
+
+    // Vista "Gastos": formulario + resumen simple + lista de gastos
+    expenseForm.hidden = isProfit;
+    summaryExpenses.hidden = isProfit;
+    expenseList.hidden = isProfit;
+    expenseEmpty.hidden = isProfit ? true : expenseEmpty.hidden;
+
+    // Vista "Ganancia neta": resumen de 3 columnas + lista combinada (solo lectura)
+    summaryProfit.hidden = !isProfit;
+    rangeMovementsList.hidden = !isProfit;
+    rangeMovementsEmpty.hidden = !isProfit ? true : rangeMovementsEmpty.hidden;
+
+    renderAll();
   });
+});
+
+// =========================================================================
+// SELECTOR DE RANGO: Hoy | 7 días | Este mes | Personalizado
+// =========================================================================
+rangeChips.forEach((chip) => {
+  chip.addEventListener("click", () => {
+    currentRange = chip.dataset.range;
+    rangeChips.forEach((c) => c.classList.toggle("is-active", c === chip));
+
+    customRange.hidden = currentRange !== "custom";
+
+    const labels = {
+      today: "hoy",
+      week: "en los últimos 7 días",
+      month: "este mes",
+      custom: "en el rango elegido",
+    };
+    expenseSummaryLabel.textContent = `Total gastado ${labels[currentRange]}`;
+
+    // El rango "Personalizado" espera a que la vendedora toque "Aplicar rango"
+    if (currentRange !== "custom") renderAll();
+  });
+});
+
+applyCustomRange.addEventListener("click", () => {
+  if (!rangeFrom.value || !rangeTo.value) {
+    alert("Elige una fecha de inicio y de fin.");
+    return;
+  }
+  customFromDate = new Date(`${rangeFrom.value}T00:00:00`);
+  customToDate = new Date(`${rangeTo.value}T23:59:59`);
+  renderAll();
 });
 
 // ---------------------- Utilidades de fecha ----------------------
@@ -113,6 +184,34 @@ function isSameMonth(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }
 
+function isWithinLastDays(date, days) {
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - (days - 1));
+  cutoff.setHours(0, 0, 0, 0);
+  return date >= cutoff && date <= now;
+}
+
+// 🔧 Filtro central de fechas: aquí se decide qué entra según el rango elegido
+function isInSelectedRange(date) {
+  if (!date) return false;
+  const now = new Date();
+
+  switch (currentRange) {
+    case "today":
+      return isSameDay(date, now);
+    case "week":
+      return isWithinLastDays(date, 7);
+    case "month":
+      return isSameMonth(date, now);
+    case "custom":
+      if (!customFromDate || !customToDate) return false;
+      return date >= customFromDate && date <= customToDate;
+    default:
+      return false;
+  }
+}
+
 function formatDate(date) {
   return date.toLocaleDateString("es-PE", {
     day: "2-digit",
@@ -122,7 +221,9 @@ function formatDate(date) {
   });
 }
 
-// ---------------------- Dibujar una fila de gasto ----------------------
+// =========================================================================
+// VISTA "GASTOS": lista simple + total
+// =========================================================================
 function renderExpenseRow(expenseId, expense, date) {
   const row = document.createElement("div");
   row.className = "expense-row";
@@ -142,7 +243,6 @@ function renderExpenseRow(expenseId, expense, date) {
     .addEventListener("click", async () => {
       const confirmDelete = confirm(`¿Eliminar el gasto "${expense.concept}"?`);
       if (!confirmDelete) return;
-
       try {
         await deleteDoc(doc(db, "expenses", expenseId));
       } catch (error) {
@@ -154,54 +254,136 @@ function renderExpenseRow(expenseId, expense, date) {
   return row;
 }
 
-// ---------------------- Filtrar y pintar la lista según Hoy / Este mes ----------------------
-function renderExpenses() {
-  const now = new Date();
-
-  const filtered = allExpenses.filter((item) => {
-    if (!item.date) return false;
-    return currentRange === "today"
-      ? isSameDay(item.date, now)
-      : isSameMonth(item.date, now);
-  });
-
+function renderExpensesView(filteredExpenses) {
   expenseList.innerHTML = "";
 
-  if (filtered.length === 0) {
+  if (filteredExpenses.length === 0) {
     expenseEmpty.hidden = false;
   } else {
     expenseEmpty.hidden = true;
-    filtered.forEach((item) => {
+    filteredExpenses.forEach((item) => {
       expenseList.appendChild(renderExpenseRow(item.id, item, item.date));
     });
   }
 
-  const total = filtered.reduce(
+  const total = filteredExpenses.reduce(
     (sum, item) => sum + Number(item.amount || 0),
     0,
   );
   expenseSummaryTotal.textContent = `S/ ${total.toFixed(2)}`;
 }
 
-// ---------------------- Escuchar los gastos de la vendedora en tiempo real ----------------------
+// =========================================================================
+// VISTA "GANANCIA NETA": Ventas, Gastos, Ganancia + movimientos combinados
+// =========================================================================
+function renderProfitView(filteredExpenses, filteredSales) {
+  const salesTotal = filteredSales.reduce(
+    (sum, s) => sum + Number(s.total || 0),
+    0,
+  );
+  const expensesTotal = filteredExpenses.reduce(
+    (sum, e) => sum + Number(e.amount || 0),
+    0,
+  );
+  const net = salesTotal - expensesTotal;
+
+  profitSales.textContent = `S/ ${salesTotal.toFixed(2)}`;
+  profitExpenses.textContent = `S/ ${expensesTotal.toFixed(2)}`;
+  profitNet.textContent = `S/ ${net.toFixed(2)}`;
+  profitNet.style.color =
+    net < 0 ? "var(--color-danger)" : "var(--color-success)";
+
+  const movements = [
+    ...filteredSales.map((s) => ({
+      type: "sale",
+      date: s.date,
+      title: s.productName,
+      amount: s.total,
+    })),
+    ...filteredExpenses.map((e) => ({
+      type: "expense",
+      date: e.date,
+      title: e.concept,
+      amount: e.amount,
+    })),
+  ].sort((a, b) => b.date - a.date);
+
+  rangeMovementsList.innerHTML = "";
+
+  if (movements.length === 0) {
+    rangeMovementsEmpty.hidden = false;
+    return;
+  }
+  rangeMovementsEmpty.hidden = true;
+
+  movements.forEach((m) => {
+    const isSale = m.type === "sale";
+    const row = document.createElement("div");
+    row.className = "movement-row";
+    row.innerHTML = `
+      <div class="movement-row__icon movement-row__icon--${m.type}">${isSale ? "💰" : "💸"}</div>
+      <div class="movement-row__info">
+        <div class="movement-row__title">${m.title}</div>
+        <div class="movement-row__time">${formatDate(m.date)}</div>
+      </div>
+      <div class="movement-row__amount movement-row__amount--${m.type}">
+        ${isSale ? "+" : "-"}S/ ${Number(m.amount).toFixed(2)}
+      </div>
+    `;
+    rangeMovementsList.appendChild(row);
+  });
+}
+
+// ---------------------- Aplica el filtro de rango y dibuja la vista activa ----------------------
+function renderAll() {
+  const filteredExpenses = allExpenses.filter((e) => isInSelectedRange(e.date));
+
+  if (currentMetric === "expenses") {
+    renderExpensesView(filteredExpenses);
+  } else {
+    const filteredSales = allSales.filter((s) => isInSelectedRange(s.date));
+    renderProfitView(filteredExpenses, filteredSales);
+  }
+}
+
+// =========================================================================
+// ESCUCHAS EN TIEMPO REAL
+// =========================================================================
 function listenToExpenses(uid) {
   const expensesQuery = query(
     collection(db, "expenses"),
     where("userId", "==", uid),
     orderBy("createdAt", "desc"),
   );
-
   unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
     allExpenses = snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
       return {
         id: docSnap.id,
         ...data,
-        // createdAt puede tardar un instante en llegar del servidor; si aún no está, usamos "ahora"
         date: data.createdAt ? data.createdAt.toDate() : new Date(),
       };
     });
-    renderExpenses();
+    renderAll();
+  });
+}
+
+function listenToSales(uid) {
+  const salesQuery = query(
+    collection(db, "sales"),
+    where("userId", "==", uid),
+    orderBy("createdAt", "desc"),
+  );
+  unsubscribeSales = onSnapshot(salesQuery, (snapshot) => {
+    allSales = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        date: data.createdAt ? data.createdAt.toDate() : new Date(),
+      };
+    });
+    if (currentMetric === "profit") renderAll();
   });
 }
 
@@ -211,11 +393,18 @@ onAuthStateChanged(auth, (user) => {
     unsubscribeExpenses();
     unsubscribeExpenses = null;
   }
+  if (unsubscribeSales) {
+    unsubscribeSales();
+    unsubscribeSales = null;
+  }
 
   if (user) {
     listenToExpenses(user.uid);
+    listenToSales(user.uid);
   } else {
     allExpenses = [];
+    allSales = [];
     expenseList.innerHTML = "";
+    rangeMovementsList.innerHTML = "";
   }
 });

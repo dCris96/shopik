@@ -179,33 +179,35 @@ saleForm.addEventListener("submit", async (event) => {
   saleSubmitBtn.disabled = true;
   saleSubmitBtn.textContent = "Guardando...";
 
-  try {
-    // 🔐 1) Guarda la venta en Firestore
-    await addDoc(collection(db, "sales"), {
-      userId: user.uid,
-      productId: product.id,
-      productName: product.name,
-      unitPrice: product.price,
-      quantity,
-      total,
-      createdAt: serverTimestamp(),
-    });
+  // 🔧 No esperamos (await) la confirmación del servidor de estas dos
+  // escrituras: con persistencia offline activa, esas promesas no se
+  // resuelven hasta que hay conexión, y el botón se quedaría en
+  // "Guardando..." para siempre sin buena señal. Ambas ya se aplican al
+  // instante en el caché local (la venta se ve en el dashboard y el stock
+  // se descuenta de inmediato), y se sincronizan solas al recuperar señal.
+  addDoc(collection(db, "sales"), {
+    userId: user.uid,
+    productId: product.id,
+    productName: product.name,
+    unitPrice: product.price,
+    quantity,
+    total,
+    createdAt: serverTimestamp(),
+  }).catch((error) => {
+    console.error("No se pudo sincronizar la venta con el servidor:", error);
+  });
 
-    // 🔐 2) Descuenta el stock vendido del producto (operación atómica con increment)
-    await updateDoc(doc(db, "products", product.id), {
-      stock: increment(-quantity),
-    });
+  updateDoc(doc(db, "products", product.id), {
+    stock: increment(-quantity),
+  }).catch((error) => {
+    console.error("No se pudo sincronizar el descuento de stock:", error);
+  });
 
-    saleModal.classList.remove("is-open");
-    saleForm.reset();
-    saleQuantity.value = 1;
-  } catch (error) {
-    console.error(error);
-    showError(saleError, "No se pudo registrar la venta. Inténtalo de nuevo.");
-  } finally {
-    saleSubmitBtn.disabled = false;
-    saleSubmitBtn.textContent = "Confirmar venta";
-  }
+  saleModal.classList.remove("is-open");
+  saleForm.reset();
+  saleQuantity.value = 1;
+  saleSubmitBtn.disabled = false;
+  saleSubmitBtn.textContent = "Confirmar venta";
 });
 
 // =========================================================================
@@ -229,25 +231,21 @@ quickExpenseForm.addEventListener("submit", async (event) => {
   quickExpenseSubmitBtn.disabled = true;
   quickExpenseSubmitBtn.textContent = "Guardando...";
 
-  try {
-    await addDoc(collection(db, "expenses"), {
-      userId: user.uid,
-      concept,
-      amount,
-      createdAt: serverTimestamp(),
-    });
-    quickExpenseModal.classList.remove("is-open");
-    quickExpenseForm.reset();
-  } catch (error) {
-    console.error(error);
-    showError(
-      quickExpenseError,
-      "No se pudo guardar el gasto. Inténtalo de nuevo.",
-    );
-  } finally {
-    quickExpenseSubmitBtn.disabled = false;
-    quickExpenseSubmitBtn.textContent = "Guardar gasto";
-  }
+  // 🔧 Mismo motivo que en los otros dos formularios: no esperamos la
+  // confirmación del servidor para no dejar el botón colgado sin conexión.
+  addDoc(collection(db, "expenses"), {
+    userId: user.uid,
+    concept,
+    amount,
+    createdAt: serverTimestamp(),
+  }).catch((error) => {
+    console.error("No se pudo sincronizar el gasto con el servidor:", error);
+  });
+
+  quickExpenseModal.classList.remove("is-open");
+  quickExpenseForm.reset();
+  quickExpenseSubmitBtn.disabled = false;
+  quickExpenseSubmitBtn.textContent = "Guardar gasto";
 });
 
 // =========================================================================
